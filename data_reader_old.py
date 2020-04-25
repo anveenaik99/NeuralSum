@@ -5,7 +5,7 @@ import os
 import codecs
 import collections
 import numpy as np
-import json
+
 
 class Vocab:
 
@@ -14,7 +14,6 @@ class Vocab:
         self._index2token = index2token or []
 
     def feed(self, token):
-        # print(self._token2index)
         if token not in self._token2index:
             # allocate new index for this token
             index = len(self._token2index)
@@ -44,13 +43,11 @@ class Vocab:
         return self._token2index.get(token, default)
 
     def save(self, filename):
-        print(filename)
         with open(filename, 'wb') as f:
             pickle.dump((self._token2index, self._index2token), f, pickle.HIGHEST_PROTOCOL)
 
     @classmethod
     def load(cls, filename):
-        print(filename)
         with open(filename, 'rb') as f:
             token2index, index2token = pickle.load(f)
 
@@ -71,39 +68,27 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
 
     for fname in ('train', 'valid', 'test'):
         print('reading', fname)
-        pname = os.path.join(data_dir, fname+'.json')
-        with open(pname) as f:
-            examples = [json.loads(line) for line in f]
-            lines=[]
-            lines.append([])
-            lines.append([])
-            for segment in examples:
-                temp_label=segment['labels']
-                temp_label=temp_label.split('\n')
-                temp_doc = segment['doc']
-                temp_doc=temp_doc.split('\n')
-                lines[0].append(temp_doc)
-                lines[1].append(temp_label)
+        pname = os.path.join(data_dir, fname)
+        for dname in os.listdir(pname):  
 
-            for i in range(len(lines[0])):
+            with codecs.open(os.path.join(pname, dname), 'r', 'utf-8') as f:
+                lines = f.read().split('\n\n')
                 word_doc = []
                 label_doc = []
-                temp_doc=lines[0][i]
-                temp_label=lines[1][i]
-                # print(temp_doc,temp_label)
-                for j in range(len(temp_doc)):
-                    sent = temp_doc[j]
-                    label=temp_label[j]
-                    sent = sent.strip()
+
+                for line in lines[1].split('\n'):
+                    line = line.strip()
+                    line = line.replace('}', '').replace('{', '').replace('|', '')
+                    line = line.replace('<unk>', ' | ')
+
+                    sent, label = line.split('\t\t\t')  
                     label_doc.append(label)
-                    # print(label)
                     sent = sent.split(' ')
 
                     if len(sent) > max_sent_length - 2:  # space for 'start' and 'end' words
                         sent = sent[:max_sent_length-2]
 
                     word_array = [word_vocab.feed(c) for c in ['{'] + sent + ['}']]
-                    # print(sent,word_array)
                     word_doc.append(word_array)
   
                 if len(word_doc) > max_doc_length:
@@ -114,8 +99,6 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
 
                 word_tokens[fname].append(word_doc)
                 labels[fname].append(label_doc)
-                # print(word_tokens)
-                # print(labels)
 
     assert actual_max_doc_length <= max_doc_length
 

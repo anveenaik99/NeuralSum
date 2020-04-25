@@ -14,7 +14,7 @@ from data_reader import load_data, DataReader
 flags = tf.flags
 
 # data
-flags.DEFINE_string('data_dir',    'data/demo',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
+flags.DEFINE_string('data_dir',    'data/',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
 flags.DEFINE_string('train_dir',   'cv',     'training directory (models and summaries are saved there periodically)')
 flags.DEFINE_string('load_model',   None,    '(optional) filename of the model to load. Useful for re-starting training from a checkpoint')
 
@@ -254,9 +254,10 @@ def main(_):
 
         ''' training starts here '''
         best_valid_loss = None
+
         #rnn_state = session.run(train_model.initial_rnn_state)
         for epoch in range(FLAGS.max_epochs):
-
+            step=0
             epoch_start_time = time.time()
             avg_train_loss = 0.0
             count = 0
