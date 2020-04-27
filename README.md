@@ -27,6 +27,7 @@ Neural Network Summarizer
 
 ## Quick-start
 * [Data](https://docs.google.com/uc?id=0B0Obe9L1qtsnSXZEd0JCenIyejg&export=download)
+* You can change the data_dir in the code train.py, this directory should have three files, train.json, test.json and valid.json
 * Pretrian a general-purpose encoder: ```python pretrain.py```
 * Training ```python train.py```
 * Evaluate ```python evaluate.py```
