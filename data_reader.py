@@ -106,9 +106,9 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                     # print(sent,word_array)
                     word_doc.append(word_array)
   
-                if len(word_doc) > max_doc_length:
-                    word_doc = word_doc[:max_doc_length]
-                    label_doc = label_doc[:max_doc_length]
+                # if len(word_doc) > max_doc_length:
+                #     word_doc = word_doc[:max_doc_length]
+                #     label_doc = label_doc[:max_doc_length]
 
                 actual_max_doc_length = max(actual_max_doc_length, len(word_doc))
 
@@ -117,7 +117,7 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                 # print(word_tokens)
                 # print(labels)
 
-    assert actual_max_doc_length <= max_doc_length
+    # assert actual_max_doc_length <= max_doc_length
 
     print()
     print('actual longest document length is:', actual_max_doc_length)
