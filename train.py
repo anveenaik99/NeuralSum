@@ -11,7 +11,7 @@ import model
 from data_reader import load_data, DataReader
 
 
-flags = tf.compat.v1.flags.Flag
+flags = tf.flags
 
 # data
 flags.DEFINE_string('data_dir',    'data/',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
