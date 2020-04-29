@@ -11,7 +11,7 @@ import model
 from data_reader import load_data, DataReader
 
 
-flags = tf.flags
+flags = tf.compat.v1.flags.Flag
 
 # data
 flags.DEFINE_string('data_dir',    'data/',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
@@ -37,7 +37,7 @@ flags.DEFINE_float  ('param_init',          0.05, 'initialize parameters at')
 flags.DEFINE_integer('batch_size',          20,   'number of sequences to train on in parallel')
 flags.DEFINE_integer('max_epochs',          25,   'number of full passes through the training data')
 flags.DEFINE_float  ('max_grad_norm',       5.0,  'normalize gradients at')
-flags.DEFINE_integer('max_doc_length',      15,   'max_doc_length')
+flags.DEFINE_integer('max_doc_length',      28,   'max_doc_length')
 flags.DEFINE_integer('max_sen_length',      50,   'maximum sentence length')
 
 # bookkeeping
