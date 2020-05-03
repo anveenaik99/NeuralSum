@@ -21,13 +21,22 @@ def load_wordvec(embedding_path):
     '''load word vectors'''
 
     print ('loading word vectors')
-    word_vec = {}
-    with open(embedding_path, "r") as f:
-        for line in f:
-            line = line.rstrip().split(' ')
-            word_vec[line[0]] = np.asarray([float(x) for x in line[1:]])
-    print ('loading completed')
+    # word_vec = {}
+    # with open(embedding_path, "r") as f:
+    #     for line in f:
+    #         line = line.rstrip().split(' ')
+    #         word_vec[line[0]] = np.asarray([float(x) for x in line[1:]])
 
+    if os.path.exists(embedding_path):
+        print("models exists")
+        model = Word2Vec.load(model_path)
+    else:
+        print("Word2Vec Model do not exist. Terminating")
+        exit()
+    word_vec = {}
+    for i, word in enumerate(model.wv.vocab):
+        word_vec[word] = np.asarray([float(c) for c in model.wv[word]])
+    print ('loading completed')
     return word_vec
 
 
