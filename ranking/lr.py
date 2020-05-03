@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression as lr
 from scipy.spatial.distance import cosine
 import json
 from gensim.models import Word2Vec
+import pickle
 
 flags = tf.flags
 
@@ -15,6 +16,7 @@ flags.DEFINE_boolean('symbolic',       True,        'use symbolic features, e.g.
 flags.DEFINE_boolean('distributional', True,        'use distributional features, e.g., sentence position, length')
 flags.DEFINE_string ('embedding_path', 'ranking/word2vec.model',      'emebdding path, which must be specified if distributional=True')
 flags.DEFINE_integer('embedding_dim',  100,          'emebdding size')
+flags.DEFINE_integer('max_doc_length',    500,   'max_doc_length')
 
 FLAGS = flags.FLAGS
 
@@ -63,7 +65,7 @@ def load_nn_score(nn_score_path):
     #     for i in range(len(lines)):
     #         for key, val in line.iteritems():
     #             scores[key] = val
-    print(scores[1])
+    # print(scores[1])
     return scores
 
 
@@ -161,7 +163,7 @@ def train_and_test():
 
     train_x, train_y = [], []
 
-    train_files = os.path.join(FLAGS.data_dir, 'train_old.json')
+    train_files = os.path.join(FLAGS.data_dir, 'test.json')
     with open(train_files) as f:
         examples = [json.loads(line) for line in f]
         lines=[]
@@ -179,13 +181,16 @@ def train_and_test():
             temp_label=lines[1][i]
             sens = [sen.strip() for sen in temp_doc]
             y = [int(sen) for sen in temp_label]
-            # print(sens,y) 
+            # print(len(sens),len(y)) 
 
             x_n = nn_scores[i]
             x_s = sExtractor.extract_feature(sens)
             x_d = dExtractor.extract_feature(sens, word_vec)
             x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
             x = normalize(x)
+
+            if len(y) > FLAGS.max_doc_length:
+                y = y[:FLAGS.max_doc_length]
 
             train_x.extend(x)
             train_y.extend(y)
@@ -194,12 +199,15 @@ def train_and_test():
 
     train_x = np.asarray(train_x)
     train_y = np.asarray(train_y)
-
+    train_x=np.nan_to_num(train_x)
+    train_y=np.nan_to_num(train_y)
+    print(train_x.shape,train_y.shape)
     my_lr = lr()
     my_lr.fit(train_x, train_y)
 
     print ('testing...')
-    test_files = os.path.join(FLAGS.data_dir, 'train_old.json')
+    output=[]
+    test_files = os.path.join(FLAGS.data_dir, 'test.json')
     with open(test_files) as f:
         examples = [json.loads(line) for line in f]
         lines=[]
@@ -217,6 +225,10 @@ def train_and_test():
             temp_label=lines[1][i]
             sens = [sen.strip() for sen in temp_doc]
             y = [int(sen) for sen in temp_label]
+            if len(y) > FLAGS.max_doc_length:
+                y = y[:FLAGS.max_doc_length]
+            if len(sens) > FLAGS.max_doc_length:
+                sens = sens[:FLAGS.max_doc_length]
             # print(sens,y)
 
             x_n = nn_scores[i]
@@ -225,25 +237,38 @@ def train_and_test():
             test_x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
             test_x = normalize(test_x)
 
-            fp.close()
-
-            score = my_lr.predict_proba(np.asarray(test_x))
+            f.close()
+            test_x=np.asarray(test_x)
+            test_x=np.nan_to_num(test_x)
+            score = my_lr.predict_proba(test_x)
             # we need score for the postive classes
             sen_score = {}
             for sid, sentence in enumerate(sens):
+                # print(sid,sentence)
                 sen_score[sentence] = score[sid][1] + 0.5 * score[sid][2]
 
             sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
             selected = [s[0] for s in sorted_sen[:3]]
 
+            summary=[]
             # store selected sentences to output file, following the original order
-            file_name = '.'.join(input_file.split('.')[:-1]) + '.output'
-
-            output_fp = open(os.path.join(FLAGS.output_dir, file_name), 'w')
             for sen in sens:
                 if sen in selected:
-                    output_fp.write(sen + '\n')
-            output_fp.close()
+                    summary.append(sen)
+            output.append(summary)
+            # if output is None:
+            #     output = summary
+            # else:
+            #     output = np.vstack((output, summary)) 
+            
+    # file_name = '.'. 'test.output'
+    with open(os.path.join(FLAGS.output_dir, "test_summary.pkl"), 'wb') as f:
+        pickle.dump(output,f)
+    # output_fp = open(os.path.join(FLAGS.output_dir, file_name), 'w')
+    # for sen in sens:
+    #     if sen in selected:
+    #         output_fp.write(sen + '\n')
+    # output_fp.close()
 
 if __name__ == "__main__":
     train_and_test()
