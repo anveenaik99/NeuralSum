@@ -64,17 +64,14 @@ def original_summary(filename,output_dir):
             summary=[]
             temp=segment['summaries']
             temp=temp.split('\n')
-            # for sen in temp:
-            #     summary.append(temp)
-            # summary=".".join(summary)
-            lines.append(temp)
+            for sen in temp:
+                summary.append(sen)
+            lines.append(' '.join(summary))
         f.close()
-    summary=[]
     with open(os.path.join(output_dir, "original_summary.txt"),'w') as f:
-        f.writelines(' '.join(str(j) for j in i) + '\n' for i in lines)
-        # for summ in lines:
-        #     f.write(summ)
-        #     f.write("\n")
+        for summ in lines:
+            f.write(summ)
+            f.write("\n")
         f.close()
     return os.path.join(output_dir, "original_summary.txt")
 
