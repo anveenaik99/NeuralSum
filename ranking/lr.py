@@ -11,7 +11,8 @@ flags = tf.flags
 
 flags.DEFINE_string ('data_dir',      'data',  'data directory, to compute vocab')
 flags.DEFINE_string ('output_dir',    'cv',     'output directory, to store summaries')
-flags.DEFINE_string ('nn_score_path', 'cv/scores',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('nn_score_path_train', 'cv/scores',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('nn_score_path_test', 'cv/scores',   'a json file storing sentence scores computed with neural model')
 flags.DEFINE_boolean('symbolic',       True,        'use symbolic features, e.g., sentence position, length')
 flags.DEFINE_boolean('distributional', True,        'use distributional features, e.g., sentence position, length')
 flags.DEFINE_string ('embedding_path', 'ranking/word2vec.model',      'emebdding path, which must be specified if distributional=True')
@@ -159,7 +160,8 @@ def train_and_test():
 
     word_vec = load_wordvec(FLAGS.embedding_path)
 
-    nn_scores = load_nn_score(FLAGS.nn_score_path)
+    nn_scores_train = load_nn_score(FLAGS.nn_score_path_train)
+    nn_scores_test = load_nn_score(FLAGS.nn_score_path_test)
 
     train_x, train_y = [], []
 
@@ -183,7 +185,7 @@ def train_and_test():
             y = [int(sen) for sen in temp_label]
             # print(len(sens),len(y)) 
 
-            x_n = nn_scores[i]
+            x_n = nn_scores_train[i]
             x_s = sExtractor.extract_feature(sens)
             x_d = dExtractor.extract_feature(sens, word_vec)
             x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
@@ -231,7 +233,7 @@ def train_and_test():
                 sens = sens[:FLAGS.max_doc_length]
             # print(sens,y)
 
-            x_n = nn_scores[i]
+            x_n = nn_scores_test[i]
             x_s = sExtractor.extract_feature(sens)
             x_d = dExtractor.extract_feature(sens, word_vec)
             test_x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
