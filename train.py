@@ -34,10 +34,10 @@ flags.DEFINE_float  ('learning_rate_decay', 0.5,  'learning rate decay')
 flags.DEFINE_float  ('learning_rate',       1.0,  'starting learning rate')
 flags.DEFINE_float  ('decay_when',          1.0,  'decay if validation perplexity does not improve by more than this much')
 flags.DEFINE_float  ('param_init',          0.05, 'initialize parameters at')
-flags.DEFINE_integer('batch_size',          20,   'number of sequences to train on in parallel')
+flags.DEFINE_integer('batch_size',          1,   'number of sequences to train on in parallel')
 flags.DEFINE_integer('max_epochs',          25,   'number of full passes through the training data')
 flags.DEFINE_float  ('max_grad_norm',       5.0,  'normalize gradients at')
-flags.DEFINE_integer('max_doc_length',      28,   'max_doc_length')
+flags.DEFINE_integer('max_doc_length',      500,   'max_doc_length')
 flags.DEFINE_integer('max_sen_length',      50,   'maximum sentence length')
 
 # bookkeeping

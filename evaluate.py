@@ -14,7 +14,7 @@ from data_reader import load_data, DataReader
 flags = tf.flags
 
 # data
-flags.DEFINE_string('data_dir',    'data/demo',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
+flags.DEFINE_string('data_dir',    'data',   'data directory. Should contain train.txt/valid.txt/test.txt with input data')
 flags.DEFINE_string('train_dir',   'cv',          'training directory (models and summaries are saved there periodically)')
 flags.DEFINE_string('load_model',   None,         '(optional) filename of the model to load. Useful for re-starting training from a checkpoint')
 
@@ -28,8 +28,8 @@ flags.DEFINE_string ('kernel_features', '[50,100,150,200,200,200,200]', 'number 
 flags.DEFINE_integer('rnn_layers',      2,                              'number of layers in the LSTM')
 
 # optimization
-flags.DEFINE_integer('batch_size',        20,   'number of sequences to train on in parallel')
-flags.DEFINE_integer('max_doc_length',    15,   'max_doc_length')
+flags.DEFINE_integer('batch_size',        1,   'number of sequences to train on in parallel')
+flags.DEFINE_integer('max_doc_length',    500,   'max_doc_length')
 flags.DEFINE_integer('max_sen_length',    50,   'maximum sentence length')
 flags.DEFINE_float  ('weight_2',          0.5,  'how much do we count about label 2')
 
@@ -171,6 +171,7 @@ def main(_):
                 result_scores = np.vstack((result_scores, total_scores)) 
         
         save_as = '%s/scores' % (FLAGS.train_dir)
+        save_as = save_as + str(time.time())
         np.savetxt(save_as, result_scores, delimiter=' ')
         time_elapsed = time.time() - start_time
  
