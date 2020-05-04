@@ -56,6 +56,27 @@ class Vocab:
 
         return cls(token2index, index2token)
 
+def original_summary(filename,output_dir):
+    lines=[]
+    with open(filename) as f:
+        examples = [json.loads(line) for line in f]
+        for segment in examples:
+            summary=[]
+            temp=segment['summaries']
+            temp=temp.split('\n')
+            # for sen in temp:
+            #     summary.append(temp)
+            # summary=".".join(summary)
+            lines.append(temp)
+        f.close()
+    summary=[]
+    with open(os.path.join(output_dir, "original_summary.txt"),'w') as f:
+        f.writelines(' '.join(str(j) for j in i) + '\n' for i in lines)
+        # for summ in lines:
+        #     f.write(summ)
+        #     f.write("\n")
+        f.close()
+    return os.path.join(output_dir, "original_summary.txt")
 
 def load_data(data_dir, max_doc_length=10, max_sent_length=50):
 
@@ -106,10 +127,9 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                     # print(sent,word_array)
                     word_doc.append(word_array)
   
-                # if len(word_doc) > max_doc_length:
-                #     word_doc = word_doc[:max_doc_length]
-                #     label_doc = label_doc[:max_doc_length]
-
+                if len(word_doc) > max_doc_length:
+                    word_doc = word_doc[:max_doc_length]
+                    label_doc = label_doc[:max_doc_length]
                 actual_max_doc_length = max(actual_max_doc_length, len(word_doc))
 
                 word_tokens[fname].append(word_doc)
@@ -117,7 +137,7 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                 # print(word_tokens)
                 # print(labels)
 
-    # assert actual_max_doc_length <= max_doc_length
+    assert actual_max_doc_length <= max_doc_length
 
     print()
     print('actual longest document length is:', actual_max_doc_length)
