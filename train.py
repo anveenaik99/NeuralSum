@@ -261,6 +261,7 @@ def main(_):
             epoch_start_time = time.time()
             avg_train_loss = 0.0
             count = 0
+
             for x, y in train_reader.iter():
                 count += 1
                 start_time = time.time()

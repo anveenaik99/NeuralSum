@@ -163,7 +163,7 @@ def main(_):
                 weights = np.array([0, 1, 0.5])
                 scores = np.dot(scores, weights)
                 total_scores.append(scores)
- 
+
             total_scores = np.transpose(np.asarray(total_scores))
             if result_scores is None:
                 result_scores = total_scores
