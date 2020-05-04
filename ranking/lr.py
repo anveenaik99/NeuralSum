@@ -4,16 +4,20 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression as lr
 from scipy.spatial.distance import cosine
 import json
+from gensim.models import Word2Vec
+import pickle
 
 flags = tf.flags
 
-flags.DEFINE_string ('data_dir',      'data/demo',  'data directory, to compute vocab')
-flags.DEFINE_string ('output_dir',    'output',     'output directory, to store summaries')
-flags.DEFINE_string ('nn_score_path', 'cv/score',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('data_dir',      'data',  'data directory, to compute vocab')
+flags.DEFINE_string ('output_dir',    'cv',     'output directory, to store summaries')
+flags.DEFINE_string ('nn_score_path_train', 'cv/scores',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('nn_score_path_test', 'cv/scores',   'a json file storing sentence scores computed with neural model')
 flags.DEFINE_boolean('symbolic',       True,        'use symbolic features, e.g., sentence position, length')
 flags.DEFINE_boolean('distributional', True,        'use distributional features, e.g., sentence position, length')
-flags.DEFINE_string ('embedding_path', 'data',      'emebdding path, which must be specified if distributional=True')
-flags.DEFINE_integer('embedding_dim',  50,          'emebdding size')
+flags.DEFINE_string ('embedding_path', 'ranking/word2vec.model',      'emebdding path, which must be specified if distributional=True')
+flags.DEFINE_integer('embedding_dim',  100,          'emebdding size')
+flags.DEFINE_integer('max_doc_length',    500,   'max_doc_length')
 
 FLAGS = flags.FLAGS
 
@@ -29,7 +33,7 @@ def load_wordvec(embedding_path):
 
     if os.path.exists(embedding_path):
         print("models exists")
-        model = Word2Vec.load(model_path)
+        model = Word2Vec.load(embedding_path)
     else:
         print("Word2Vec Model do not exist. Terminating")
         exit()
@@ -44,12 +48,25 @@ def load_nn_score(nn_score_path):
     '''load the output scores predicted by an NN model
        this is a json file, which maps file name to a list of sentence scores'''
     scores = {}
-    with open(nn_score_dir, 'r') as f:
-        for line in f:
-            line = json.loads(line)
-            for key, val in line.iteritems():
-                scores[key] = val
-
+    lines=np.loadtxt(nn_score_path,delimiter=' ')
+    # print(type(lines))
+    for i in range(len(lines)):
+        # j=0
+        # for j in range(1,len(lines[i])):
+        #     if(lines[i][j]<1e-1 and lines[i][j-1]<1e-1):
+        #         print(lines[i][j])
+        #         break
+        # print(j)
+        # temp=lines[i][0:j]
+        # scores[i]=temp
+        # lines[i]=np.nan_to_num(lines[i])
+        scores[i]=lines[i]
+    # with open(nn_score_path, 'r') as f:
+    #     lines=f.read
+    #     for i in range(len(lines)):
+    #         for key, val in line.iteritems():
+    #             scores[key] = val
+    # print(scores[1])
     return scores
 
 
@@ -104,7 +121,7 @@ class Distributional_Extractor(object):
         sen_vec = np.zeros(FLAGS.embedding_dim)
         count = 0
         for word in sen.split(' '):
-            if word_vec.has_key(word):
+            if word in word_vec:
                 sen_vec += word_vec[word]
                 count += 1
         if count > 0:
@@ -143,76 +160,122 @@ def train_and_test():
 
     word_vec = load_wordvec(FLAGS.embedding_path)
 
-    nn_scores = load_nn_score(FLAGS.nn_score_path)
+    nn_scores_train = load_nn_score(FLAGS.nn_score_path_train)
+    nn_scores_test = load_nn_score(FLAGS.nn_score_path_test)
 
     train_x, train_y = [], []
 
-    train_dir = os.path.join(FLAGS.data_dir, 'train')
-    train_files = os.listdir(train_dir)
+    train_files = os.path.join(FLAGS.data_dir, 'test.json')
+    with open(train_files) as f:
+        examples = [json.loads(line) for line in f]
+        lines=[]
+        lines.append([])
+        lines.append([])
+        for segment in examples:
+            temp_label=segment['labels']
+            temp_label=temp_label.split('\n')
+            temp_doc = segment['doc']
+            temp_doc=temp_doc.split('\n')
+            lines[0].append(temp_doc)
+            lines[1].append(temp_label)
+        for i in range(len(lines[0])):
+            temp_doc=lines[0][i]
+            temp_label=lines[1][i]
+            sens = [sen.strip() for sen in temp_doc]
+            y = [int(sen) for sen in temp_label]
+            # print(len(sens),len(y)) 
 
-    for input_file in train_files:
-        input_dir = os.path.join(train_dir, input_file)
-        fp = open(input_dir, 'r')
-        lines = fp.read().split('\n\n')
-        sentences = lines[1].split('\n')
-        sens = [sen.split('\t\t\t')[0] for sen in sentences]
-        y = [int(sen.split('\t\t\t')[1]) for sen in sentences] 
+            x_n = nn_scores_train[i]
+            x_s = sExtractor.extract_feature(sens)
+            x_d = dExtractor.extract_feature(sens, word_vec)
+            x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
+            x = normalize(x)
 
-        x_n = nn_scores[input_file]
-        x_s = sExtractor.extract_feature(sens)
-        x_d = dExtractor.extract_feature(sens, word_vec)
-        x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
-        x = normalize(x)
+            if len(y) > FLAGS.max_doc_length:
+                y = y[:FLAGS.max_doc_length]
 
-        train_x.extend(x)
-        train_y.extend(y)
+            train_x.extend(x)
+            train_y.extend(y)
 
-        fp.close()
+    f.close()
 
     train_x = np.asarray(train_x)
     train_y = np.asarray(train_y)
-
+    train_x=np.nan_to_num(train_x)
+    train_y=np.nan_to_num(train_y)
+    print(train_x.shape,train_y.shape)
     my_lr = lr()
     my_lr.fit(train_x, train_y)
 
     print ('testing...')
+    output=[]
+    test_files = os.path.join(FLAGS.data_dir, 'test.json')
+    with open(test_files) as f:
+        examples = [json.loads(line) for line in f]
+        lines=[]
+        lines.append([])
+        lines.append([])
+        for segment in examples:
+            temp_label=segment['labels']
+            temp_label=temp_label.split('\n')
+            temp_doc = segment['doc']
+            temp_doc=temp_doc.split('\n')
+            lines[0].append(temp_doc)
+            lines[1].append(temp_label)
+        for i in range(len(lines[0])):
+            temp_doc=lines[0][i]
+            temp_label=lines[1][i]
+            sens = [sen.strip() for sen in temp_doc]
+            y = [int(sen) for sen in temp_label]
+            if len(y) > FLAGS.max_doc_length:
+                y = y[:FLAGS.max_doc_length]
+            if len(sens) > FLAGS.max_doc_length:
+                sens = sens[:FLAGS.max_doc_length]
+            # print(sens,y)
 
-    test_dir = os.path.join(FLAGS.data_dir, 'test')
-    test_files = os.listdir(test_dir)
+            x_n = nn_scores_test[i]
+            x_s = sExtractor.extract_feature(sens)
+            x_d = dExtractor.extract_feature(sens, word_vec)
+            test_x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
+            test_x = normalize(test_x)
 
-    for input_file in test_files:
-        input_dir = os.path.join(test_dir, input_file)
-        fp = open(input_dir, 'r')
-        lines = fp.read().split('\n\n')
-        sentences = lines[1].split('\n')
-        sens = [sen.split('\t\t\t')[0] for sen in sentences]
+            f.close()
+            test_x=np.asarray(test_x)
+            test_x=np.nan_to_num(test_x)
+            score = my_lr.predict_proba(test_x)
+            # we need score for the postive classes
+            sen_score = {}
+            for sid, sentence in enumerate(sens):
+                # print(sid,sentence)
+                sen_score[sentence] = score[sid][1] + 0.5 * score[sid][2]
 
-        x_n = nn_scores[input_file]
-        x_s = sExtractor.extract_feature(sens)
-        x_d = dExtractor.extract_feature(sens, word_vec)
-        test_x = [[f1] + f2 + f3 for f1, f2, f3 in zip(x_n, x_s, x_d)] 
-        test_x = normalize(test_x)
+            sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
+            selected = [s[0] for s in sorted_sen[:3]]
 
-        fp.close()
-
-        score = my_lr.predict_proba(np.asarray(test_x))
-        # we need score for the postive classes
-        sen_score = {}
-        for sid, sentence in enumerate(sens):
-            sen_score[sentence] = score[sid][1] + 0.5 * score[sid][2]
-
-        sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
-        selected = [s[0] for s in sorted_sen[:3]]
-
-        # store selected sentences to output file, following the original order
-        file_name = '.'.join(input_file.split('.')[:-1]) + '.output'
-
-        output_fp = open(os.path.join(FLAGS.output_dir, file_name), 'w')
-        for sen in sens:
-            if sen in selected:
-                output_fp.write(sen + '\n')
-        output_fp.close()
-
+            summary=[]
+            # store selected sentences to output file, following the original order
+            for sen in sens:
+                if sen in selected:
+                    summary.append(sen)
+            summary = ".".join(summary)
+            output.append(summary)
+            # if output is None:
+            #     output = summary
+            # else:
+            #     output = np.vstack((output, summary)) 
+            
+    # file_name = '.'. 'test.output'
+    with open(os.path.join(FLAGS.output_dir, "test_summary.txt"), 'w') as f:
+        for line in output:
+            f.write(line)
+            f.write("\n")
+        f.close
+        # pickle.dump(output,f)
+    # output_fp = open(os.path.join(FLAGS.output_dir, file_name), 'w')
+    # for sen in sens:
+    #     if sen in selected:
+    #         output_fp.write(sen + '\n')
+    # output_fp.close()
 
 if __name__ == "__main__":
     train_and_test()
