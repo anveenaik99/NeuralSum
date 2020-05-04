@@ -10,7 +10,7 @@ import pickle
 flags = tf.flags
 
 flags.DEFINE_string ('data_dir',      'data',  'data directory, to compute vocab')
-flags.DEFINE_string ('output_dir',    'output',     'output directory, to store summaries')
+flags.DEFINE_string ('output_dir',    'cv',     'output directory, to store summaries')
 flags.DEFINE_string ('nn_score_path', 'cv/scores',   'a json file storing sentence scores computed with neural model')
 flags.DEFINE_boolean('symbolic',       True,        'use symbolic features, e.g., sentence position, length')
 flags.DEFINE_boolean('distributional', True,        'use distributional features, e.g., sentence position, length')
@@ -255,6 +255,7 @@ def train_and_test():
             for sen in sens:
                 if sen in selected:
                     summary.append(sen)
+            summary = ".".join(summary)
             output.append(summary)
             # if output is None:
             #     output = summary
@@ -262,8 +263,12 @@ def train_and_test():
             #     output = np.vstack((output, summary)) 
             
     # file_name = '.'. 'test.output'
-    with open(os.path.join(FLAGS.output_dir, "test_summary.pkl"), 'wb') as f:
-        pickle.dump(output,f)
+    with open(os.path.join(FLAGS.output_dir, "test_summary.txt"), 'w') as f:
+        for line in output:
+            f.write(line)
+            f.write("\n")
+        f.close
+        # pickle.dump(output,f)
     # output_fp = open(os.path.join(FLAGS.output_dir, file_name), 'w')
     # for sen in sens:
     #     if sen in selected:
