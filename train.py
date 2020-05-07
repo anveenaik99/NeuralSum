@@ -218,8 +218,10 @@ def main(_):
                               FLAGS.batch_size)
 
     print('initialized all dataset readers')
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth=True
 
-    with tf.Graph().as_default(), tf.Session() as session:
+    with tf.Graph().as_default(), tf.Session(config=config) as session:
 
         # tensorflow seed must be inside graph
         tf.set_random_seed(FLAGS.seed)
