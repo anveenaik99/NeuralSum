@@ -1,4 +1,5 @@
 import os
+import time
 import tensorflow as tf
 import numpy as np
 from sklearn.linear_model import LogisticRegression as lr
@@ -11,8 +12,8 @@ flags = tf.flags
 
 flags.DEFINE_string ('data_dir',      'data',  'data directory, to compute vocab')
 flags.DEFINE_string ('output_dir',    'cv',     'output directory, to store summaries')
-flags.DEFINE_string ('nn_score_path_train', 'cv/scores',   'a json file storing sentence scores computed with neural model')
-flags.DEFINE_string ('nn_score_path_test', 'cv/scores',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('nn_score_path_train', 'cv/scores_train',   'a json file storing sentence scores computed with neural model')
+flags.DEFINE_string ('nn_score_path_test', 'cv/scores_test',   'a json file storing sentence scores computed with neural model')
 flags.DEFINE_boolean('symbolic',       True,        'use symbolic features, e.g., sentence position, length')
 flags.DEFINE_boolean('distributional', True,        'use distributional features, e.g., sentence position, length')
 flags.DEFINE_string ('embedding_path', 'ranking/word2vec.model',      'emebdding path, which must be specified if distributional=True')
@@ -209,6 +210,7 @@ def train_and_test():
 
     print ('testing...')
     output=[]
+    num_sen=[]
     test_files = os.path.join(FLAGS.data_dir, 'test.json')
     with open(test_files) as f:
         examples = [json.loads(line) for line in f]
@@ -251,21 +253,27 @@ def train_and_test():
 
             sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
             selected = [s[0] for s in sorted_sen[:3]]
-
             summary=[]
+            count=0
             # store selected sentences to output file, following the original order
             for sen in sens:
                 if sen in selected:
                     summary.append(sen)
+                    count=count+1
             summary = ".".join(summary)
             output.append(summary)
+            num_sen.append(count)
+            print(count,len(selected))
             # if output is None:
             #     output = summary
             # else:
             #     output = np.vstack((output, summary)) 
             
     # file_name = '.'. 'test.output'
-    with open(os.path.join(FLAGS.output_dir, "test_summary.txt"), 'w') as f:
+    num_sen=np.asarray(num_sen)
+    print(num_sen.shape)
+    print(np.mean(num_sen),np.std(num_sen))
+    with open(os.path.join(FLAGS.output_dir, "summary"+str(time.time())+".txt"), 'w') as f:
         for line in output:
             f.write(line)
             f.write("\n")
