@@ -7,6 +7,7 @@ from scipy.spatial.distance import cosine
 import json
 from gensim.models import Word2Vec
 import pickle
+import spacy
 
 flags = tf.flags
 
@@ -21,6 +22,14 @@ flags.DEFINE_integer('embedding_dim',  100,          'emebdding size')
 flags.DEFINE_integer('max_doc_length',    500,   'max_doc_length')
 
 FLAGS = flags.FLAGS
+nlp = spacy.load('en_core_web_sm', entity=False)
+
+def count_word(text):
+    doc = nlp(text)
+    tokens = [t.text for t in doc]
+    tokens = [t for t in tokens if len(t.translate(t.maketrans('', '', string.punctuation + string.whitespace))) > 0] # + string.digits
+    
+    return len(tokens)
 
 def load_wordvec(embedding_path):
     '''load word vectors'''
@@ -217,16 +226,21 @@ def train_and_test():
         lines=[]
         lines.append([])
         lines.append([])
+        lines.append([])
         for segment in examples:
             temp_label=segment['labels']
             temp_label=temp_label.split('\n')
             temp_doc = segment['doc']
             temp_doc=temp_doc.split('\n')
+            temp_summary = segment['summaries']
+            temp_summary=temp_summary.split('\n')
             lines[0].append(temp_doc)
             lines[1].append(temp_label)
+            lines[2].append(temp_summary)
         for i in range(len(lines[0])):
             temp_doc=lines[0][i]
             temp_label=lines[1][i]
+            temp_summary = lines[2][i]
             sens = [sen.strip() for sen in temp_doc]
             y = [int(sen) for sen in temp_label]
             if len(y) > FLAGS.max_doc_length:
@@ -248,11 +262,21 @@ def train_and_test():
             # we need score for the postive classes
             sen_score = {}
             for sid, sentence in enumerate(sens):
-                # print(sid,sentence)
                 sen_score[sentence] = score[sid][1] + 0.5 * score[sid][2]
 
             sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
-            selected = [s[0] for s in sorted_sen[:3]]
+            word_limit = count_word(temp_summary)
+            summary_words = 0
+            selected =[]
+            for s in sorted_sen:
+                temp_words = count_word(s[0])
+                if (summary_words+temp_words)<word_limit:
+                    summary_words+=temp_words
+                    selected.append(s[0])
+                else:
+                    break
+
+            # selected = [s[0] for s in sorted_sen[:3]]
             summary=[]
             count=0
             # store selected sentences to output file, following the original order
