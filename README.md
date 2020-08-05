@@ -30,7 +30,10 @@ Neural Network Summarizer
 * You can change the data_dir in the code train.py, this directory should have three files, train.json, test.json and valid.json
 * Pretrian a general-purpose encoder: ```python pretrain.py```
 * Training ```python train.py```
-* Evaluate ```python evaluate.py```
+* Evaluate ```python evaluate.py```, here you can set the load_model argument to specify the latest model that should be used to generate scores of the test data
+* Run ```evaluate.py``` for train and test data to get scores for both the files. We need those to perform logistic regression to determine the probability of each sentence in the test data being in the final summary.
+* Run ```python ranking/lr.py``` with the appropriate file names in place of scores_train and scores_test in arguments. 
+* Run ```python find_rouge.py``` to finally calculate the rouge score of each generated summary as compared to the original summary. Change the filenames test_summary.txt and original_summary.txt appropriately
 
 ## Visualize scores
 Sentence scores are stored during evaluation.

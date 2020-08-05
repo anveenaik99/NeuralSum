@@ -8,6 +8,7 @@ import json
 from gensim.models import Word2Vec
 import pickle
 import spacy
+import string
 
 flags = tf.flags
 
@@ -264,15 +265,20 @@ def train_and_test():
             for sid, sentence in enumerate(sens):
                 sen_score[sentence] = score[sid][1] + 0.5 * score[sid][2]
 
-            sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True)  
-            word_limit = count_word(temp_summary)
+            sorted_sen = sorted(sen_score.items(), key=lambda d: d[1], reverse=True) 
+            str_summary = "".join(temp_summary)
+            # print(str_summary)
+            word_limit = count_word(str(str_summary))
             summary_words = 0
             selected =[]
+            print("word limit", word_limit)
             for s in sorted_sen:
                 temp_words = count_word(s[0])
+                # print(temp_words)
                 if (summary_words+temp_words)<word_limit:
                     summary_words+=temp_words
                     selected.append(s[0])
+                    # print(s[0])
                 else:
                     break
 
