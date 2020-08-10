@@ -221,6 +221,7 @@ def train_and_test():
     print ('testing...')
     output=[]
     num_sen=[]
+    save_me = []
     test_files = os.path.join(FLAGS.data_dir, 'test.json')
     with open(test_files) as f:
         examples = [json.loads(line) for line in f]
@@ -269,6 +270,7 @@ def train_and_test():
             str_summary = "".join(temp_summary)
             # print(str_summary)
             word_limit = count_word(str(str_summary))
+            save_me.append(str_summary)
             summary_words = 0
             selected =[]
             print("word limit", word_limit)
@@ -305,6 +307,11 @@ def train_and_test():
     print(np.mean(num_sen),np.std(num_sen))
     with open(os.path.join(FLAGS.output_dir, "summary"+str(time.time())+".txt"), 'w') as f:
         for line in output:
+            f.write(line)
+            f.write("\n")
+        f.close
+    with open(os.path.join(FLAGS.output_dir, "original_summary.txt"), 'w') as f:
+        for line in save_me:
             f.write(line)
             f.write("\n")
         f.close

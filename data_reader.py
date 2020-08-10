@@ -102,6 +102,8 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                 temp_doc=temp_doc.split('\n')
                 lines[0].append(temp_doc)
                 lines[1].append(temp_label)
+                # if(len(temp_doc)!=len(temp_label)):
+                #     print(pname,len(lines[0]),len(temp_doc),len(temp_label))
 
             for i in range(len(lines[0])):
                 word_doc = []
@@ -111,6 +113,7 @@ def load_data(data_dir, max_doc_length=10, max_sent_length=50):
                 # print(temp_doc,temp_label)
                 for j in range(len(temp_doc)):
                     sent = temp_doc[j]
+                    # print(pname,i,j)
                     label=temp_label[j]
                     sent = sent.strip()
                     label_doc.append(label)

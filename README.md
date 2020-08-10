@@ -28,7 +28,8 @@ Neural Network Summarizer
 ## Quick-start
 * [Data](https://docs.google.com/uc?id=0B0Obe9L1qtsnSXZEd0JCenIyejg&export=download)
 * You can change the data_dir in the code train.py, this directory should have three files, train.json, test.json and valid.json
-* Pretrian a general-purpose encoder: ```python pretrain.py```
+* The preprocessing folder contains ```finding_similar_sentence.py``` this code generates the json files from general legal documents
+* Pretrain a general-purpose encoder: ```python pretrain.py```
 * Training ```python train.py```
 * Evaluate ```python evaluate.py```, here you can set the load_model argument to specify the latest model that should be used to generate scores of the test data
 * Run ```evaluate.py``` for train and test data to get scores for both the files. We need those to perform logistic regression to determine the probability of each sentence in the test data being in the final summary.
