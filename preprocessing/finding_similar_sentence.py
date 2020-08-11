@@ -13,8 +13,10 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 import spacy
+from spacy.attrs import ORTH
+import time
 import json
-nlp = spacy.load('en_core_web_sm', entity=False)
+
 # nltk.set_proxy('http://172.16.2.30:8080')
 # nltk.download('popular')
 
@@ -22,6 +24,22 @@ raw_dir = "./raw_dir"
 os.makedirs(raw_dir, exist_ok = True)
 summary_path = os.path.join(raw_dir, "summary.pkl")
 full_path = os.path.join(raw_dir, "full.pkl")
+data_dir="test_data"
+full_txt="Full-and-Summary-Docs/Full-Docs/full-txt"
+# full_txt="train-docs"
+summ_txt="Full-and-Summary-Docs/Summary/A1/full txt"
+# summ_txt="summary"
+save_output="train_NeuralSum"+str(time.time())+".json"
+
+def custom_sentencizer(doc):
+    ''' Look for sentence start tokens by scanning for periods only. '''
+    for i, token in enumerate(doc[:-2]):  # The last token cannot start a sentence
+        if token.text == ".":
+            #doc[i+1].is_sent_start = True
+            pass
+        else:
+            doc[i+1].is_sent_start = False  # Tell the default sentencizer to ignore this token
+    return doc
 
 def store(path, obj):
 	with open(path, 'wb') as f_out:
@@ -33,19 +51,44 @@ if os.path.exists(summary_path):
 	full = pickle.load(open(full_path, 'rb'))
 else:
 	print("summary and full do not exists")
-	tree = ET.parse('dataset_combined.xml')
-	root = tree.getroot()
-	flag = 0
 	summary = list()
 	full = list()
-	for i, childs in enumerate(root):
-		flag = 0
-		for child in childs:
-			if(child.tag == "summary"):
-				summary.append(child.text)
-				flag = 1
-			if(flag == 1 and child.tag == "full"):
-				full.append(child.text)
+	pname=os.path.join(data_dir,full_txt)
+	for fname in tqdm(os.listdir(pname)):
+		print(fname)
+		with open(os.path.join(pname,fname)) as f:
+			a=f.read().strip()
+			a = a.replace('\n', ' ')
+			a = re.sub(' +', ' ', a)
+			# print(os.path.join(pname,fname))
+			full.append(a)
+	pname=os.path.join(data_dir,summ_txt)
+	for fname in os.listdir(pname):
+		print(os.path.join(pname,fname))
+		with open(os.path.join(pname,fname)) as f:
+			a=f.read().strip()
+			a = a.replace('\n', ' ')
+			a = re.sub(' +', ' ', a)
+			# print(os.path.join(pname,fname))
+			summary.append(a)
+	# l=pickle.load(open("order.pkl",'rb'))
+	# for ele in range(7001,7132):
+	# 	fname=l[ele]
+	# 	print(fname)
+	# 	with open(fname) as f:
+	# 		a=f.read().strip()
+	# 		a = a.replace('\n', ' ')
+	# 		a = re.sub(' +', ' ', a)
+	# 		# print(len(a))
+	# 		full.append(a)
+	# for ele in range(14133,len(l)):
+	# 	fname=l[ele]
+	# 	print(fname)
+	# 	with open(fname) as f:
+	# 		a=f.read().strip()
+	# 		a = a.replace('\n', ' ')
+	# 		a = re.sub(' +', ' ', a)
+	# 		summary.append(a)
 	store(summary_path, summary)
 	store(full_path, full)
 
@@ -115,8 +158,10 @@ def find_vector(para1, para2):
 		vector_comp = vector_comp.reshape(1,-1)
 		if(l==0):
 			final_array = vector_comp
+			# print("hi")
 		else:
 			final_array = np.append(final_array, vector_comp, axis = 0)
+			# print("yo")
 	for l, i in enumerate(para2):
 		data = gensim.utils.simple_preprocess(i)
 		corp = dct.doc2bow(data)
@@ -165,6 +210,13 @@ def check(para, prob_candidate):
 			result.append(i)
 
 	return result
+nlp = spacy.load('en_core_web_sm')
+nlp.add_pipe(custom_sentencizer, before = "parser")
+
+special_cases = {"Rs.": "Rs.", "No.": "No.", "no.": "No.", "vs.": "vs", "i.e.": "i.e.", "viz.": "viz.", "M/s.": "M/s.", "Mohd.": "Mohd.", "Ex.": "exhibit", "Art." : "article", "Arts." : "articles", "S.": "section", "s.": "section", "ss.": "sections", "u/s.": "section", "u/ss.": "sections", "art.": "article", "arts.": "articles", "u/arts." : "articles", "u/art." : "article"}
+
+for case, orth in special_cases.items():
+	nlp.tokenizer.add_special_case(case, [{ORTH: orth}])
 
 label_path = os.path.join(process_dir, "labels.pkl")
 save_vector = list()
@@ -184,6 +236,8 @@ for i in range(len(summary)):
 	for r in p_2.sents:
 		para_2.append(str(r)) #sentences in full text
 	label = np.zeros(len(para_2))
+	if(len(para_2)==0 or len(para_1)==0):##########remove this
+		continue
 	#compute the vector for each sentence
 	processed_vector = find_vector(para_1, para_2)
 	summary_vector = processed_vector[:len(para_1),:]
@@ -213,14 +267,15 @@ for i in range(len(summary)):
 			labels.append('1')
 		else:
 			labels.append('0')
+	print(len(summaries),len(para_2),len(labels))
 	ex = {'doc':'\n'.join(para_2),'labels':'\n'.join(labels),'summaries':'\n'.join(summaries)}
 	# print(ex)
 	print(i, len(summary))
 	examples.append(ex)
-	if(i%100 == 0):
+	if(i%1 == 10):
 		store(label_path, save_vector)
 
-		with open("train_NeuralSum.json",'w') as f:
+		with open(save_output,'w') as f:
 			for row in examples:
 				f.write(json.dumps(row, ensure_ascii=False) + "\n")
 		f.close()
